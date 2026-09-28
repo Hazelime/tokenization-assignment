@@ -13,6 +13,7 @@ class CharTokenizer():
     def __init__(self, unk_token: str = "[UNK]"):
         self.vocab = dict()
         self.unk_token = unk_token
+        self.tokens = []
     
     def train(self, files: list[str]):
         """
@@ -56,7 +57,7 @@ class CharTokenizer():
                         indent = 4,
                         ensure_ascii = False) 
 
-    def tokenize(self, text: str):
+    def encode(self, text: str):
         """
         Tokenizes a given string into characters. Unseen characters are replaced with the
         unknown token ([UNK] by default).
@@ -69,7 +70,9 @@ class CharTokenizer():
                 A list of characters (tokens) from the input string, with unseen characters
                 replaced by the unknown token.
         """
-        return [char if char in self.vocab else self.unk_token for char in text]
+        # Create a tokens attribute to mimic the syntax of the BPE tokenizer.
+        self.tokens = [char if char in self.vocab else self.unk_token for char in text]
+        return self.tokens
 
     def from_file(self, path: str):
         """
@@ -79,11 +82,21 @@ class CharTokenizer():
             path: str
                 The file path from which to load the tokenizer. The file should be in the
                 same format as produced by the save() method.
+        Returns:
+            CharTokenizer
+                The loaded tokenizer.
         """    
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
             self.unk_token = data["unk_token"]  
             self.vocab = data["vocab"]
+        return self
+
+    def get_vocab(self):
+        """
+        Returns the vocabulary.
+        """
+        return self.vocab
 
 
 def build_char_tokenizer(train_files: list[str], save_path: str):
