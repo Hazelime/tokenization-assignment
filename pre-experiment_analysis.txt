@@ -1,0 +1,19 @@
+Q1: Which language do you expect to require the most tokens?
+A1: Probably Chinese, since 1) each Chinese character contains so much meaning, and 2) there
+are (therefore) so many different characters.
+
+Q2: How do you expect the larger BPE vocabulary to change the representation of each
+language?
+A2: For English and possibly Turkish, there will likely be several multi-character tokens
+(e.g. "are", "the"). For Chinese, I expect more or less every character to still be its own
+token unless we crank up the vocabulary size a lot (for the same reason as given above).
+
+Q3: What kinds of units do you expect BPE to learn in English, Turkish, and Chinese?
+A3: For English, common short words and subwords, such as "are" and "the." For Turkish, I 
+have no clue, since I don't know Turkish well at all. I guess it will be somewhat similar to 
+English though? For Chinese, as mentioned, I expect each character to be its own token unless
+we increase the vocabulary size a really big amount.
+
+Q4: Which tokenizer do you expect to work best for language modeling?
+A4: For English and possibly Turkish, probably the large BPE tokenizer. For Chinese, all 
+tokenizers are probably equally good/bad.
