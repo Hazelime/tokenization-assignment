@@ -13,7 +13,6 @@ class CharTokenizer():
     def __init__(self, unk_token: str = "[UNK]"):
         self.vocab = dict()
         self.unk_token = unk_token
-        self.tokens = []
     
     def train(self, files: list[str]):
         """
@@ -70,9 +69,7 @@ class CharTokenizer():
                 A list of characters (tokens) from the input string, with unseen characters
                 replaced by the unknown token.
         """
-        # Create a tokens attribute to mimic the syntax of the BPE tokenizer.
-        self.tokens = [char if char in self.vocab else self.unk_token for char in text]
-        return self.tokens
+        return [char if char in self.vocab else self.unk_token for char in text]
 
     def from_file(self, path: str):
         """
