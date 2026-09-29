@@ -33,9 +33,9 @@ def get_stats(tokenizer, valid_path: str):
     # Get total number of lines and tokens.
     total_tokens, total_lines = 0, 0
     with open(valid_path, "r", encoding="utf-8") as f:
-            for line in f:
-                total_lines += 1
-                total_tokens += len(tokenizer.encode(line.strip()))
+        for line in f:
+            total_lines += 1
+            total_tokens += len(tokenizer.encode(line.strip()))
     # Return vocabulary size, average number of Unicode characters per token, total number
     # of tokens needed to encode the validation file, and the average number of tokens per
     # sentence. 

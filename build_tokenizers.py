@@ -20,9 +20,9 @@ class CharEncoding():
             self.encoding.append(vocab.get(char, unk_id))
 
     def __len__(self):
-    """
-    Helper function to provide the expected length of a CharEncoding. 
-    """
+        """
+        Helper function to provide the expected length of a CharEncoding. 
+        """
         return len(self.encoding)
 
 
@@ -31,9 +31,10 @@ class CharTokenizer():
     A simple character-level tokenizer built to mimic how to train and use tokenizers in
     HuggingFace's tokenizers library. Uses an [UNK] token for unseen characters by default.
     """
-    def __init__(self, unk_token: str = "[UNK]"):
+    def __init__(self, special_tokens: list[str] = ["[UNK]"]):
         self.vocab = dict()
-        self.unk_token = unk_token
+        self.special_tokens = special_tokens
+        self.unk_token = special_tokens[0]
     
     def train(self, files: list[str]):
         """
@@ -45,8 +46,11 @@ class CharTokenizer():
                 A list of file paths to train the tokenizer on. Each file should
                 contain one sentence per line
         """
-        self.vocab[self.unk_token] = 0
-        idx = 1  # Start indexing from 1 to reserve 0 for the unknown token.
+        # Put special tokens first in the vocabulary
+        idx = 0
+        for special_token in self.special_tokens:
+            self.vocab[special_token] = idx
+            idx += 1
         for file in files:
             with open(file, "r") as f:
                 for line in f:
@@ -137,7 +141,7 @@ def build_char_tokenizer(train_files: list[str], save_path: str):
         save_path: str
             The file path where the trained tokenizer should be saved. 
     """
-    char_tokenizer = CharTokenizer(unk_token = "[UNK]")
+    char_tokenizer = CharTokenizer(special_tokens = ["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"])
     char_tokenizer.train(train_files)
     char_tokenizer.save(save_path)
 

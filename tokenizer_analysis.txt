@@ -1,27 +1,27 @@
 1. VOCABULARY SIZE
 Given the stats below, it seems like the only real difference between the character-level
-tokenizer and the small BPE tokenizer is the additional special tokens (e.g. [UNK]). Other-
-wise, both contain literally every character in the training set. The big BPE tokenizer, on
-the other hand, also adds a few merges (since the vocab_size limit was 10,000 > 9,446). The
-number of merges is still quite low, however, since there's not much space left after
-accounting for all the 9,443 characters in the training set.
+tokenizer and the small BPE tokenizer is the whitespace token, which was ignored for the
+BPE tokenizers due to Whitespace pre-tokenization. Otherwise, both contain literally every
+character in the training set. The big BPE tokenizer, on the other hand, also adds a few
+merges (since the vocab_size limit was 10,000 > 9,446). The number of merges is still quite
+low, however, since there's not much space left after accounting for all the 9,443
+characters in the training set.
 
 ------------------vocab_size------------------
             |    en    |    tr    |    zh    |
-Char-level  |      9443|      9443|      9443|
+Char-level  |      9447|      9447|      9447|
 Small BPE   |      9446|      9446|      9446|
 Big BPE     |     10000|     10000|     10000|
 
 
 2. AVERAGE UNICODE CHARACTERS PER TOKEN
-Again, the character-level tokenizer and the small BPE tokenizer are very similar: the 
-difference is just the number of special tokens: both include [UNK], but the small BPE 
-tokenizer also include a few others. As mentioned above, the big BPE tokenizer actually
-does include some merges, which is why it pushes the statistic to 1.1 
+Again, the character-level tokenizer and the small BPE tokenizer are basically identical:
+the difference is just the inclusion of a whitespace token. As mentioned above, the big BPE
+tokenizer actually does include some actual merges, which is why it pushes the stat to 1.1 
 
 ------------avg_unicode_per_token-------------
             |    en    |    tr    |    zh    |
-Char-level  |    1.0004|    1.0004|    1.0004|
+Char-level  |    1.0022|    1.0022|    1.0022|
 Small BPE   |    1.0022|    1.0022|    1.0022|
 Big BPE     |       1.1|       1.1|       1.1|
 
