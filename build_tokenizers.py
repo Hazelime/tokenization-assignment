@@ -141,7 +141,7 @@ def build_char_tokenizer(train_files: list[str], save_path: str):
         save_path: str
             The file path where the trained tokenizer should be saved. 
     """
-    char_tokenizer = CharTokenizer(special_tokens = ["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"])
+    char_tokenizer = CharTokenizer(special_tokens = ["[UNK]", "[EOS]"])
     char_tokenizer.train(train_files)
     char_tokenizer.save(save_path)
 
@@ -166,10 +166,8 @@ def build_bpe_tokenizer(train_files: list[str], vocab_size: int, save_path: str)
     # Set the pre-tokenizer to whitespace so the tokenizer learns subword units within words.
     bpe_tokenizer.pre_tokenizer = Whitespace()
     
-    # Create a BPE trainer with special tokens and the specified vocabulary size. (I'm not
-    # sure if [CLS], [SEP], [PAD], and [MASK] are necessary for this assignment, but I'm
-    # keeping them there just in case.)
-    bpe_trainer = BpeTrainer(special_tokens = ["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"],
+    # Create a BPE trainer with special tokens and the specified vocabulary size. 
+    bpe_trainer = BpeTrainer(special_tokens = ["[UNK]", "[EOS]"],
                              vocab_size = vocab_size)
     
     # Train the BPE tokenizer on the training data.

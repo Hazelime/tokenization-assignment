@@ -9,21 +9,21 @@ characters in the training set.
 
 ------------------vocab_size------------------
             |    en    |    tr    |    zh    |
-Char-level  |      9447|      9447|      9447|
-Small BPE   |      9446|      9446|      9446|
+Char-level  |      9444|      9444|      9444|
+Small BPE   |      9443|      9443|      9443|
 Big BPE     |     10000|     10000|     10000|
 
 
 2. AVERAGE UNICODE CHARACTERS PER TOKEN
 Again, the character-level tokenizer and the small BPE tokenizer are basically identical:
 the difference is just the inclusion of a whitespace token. As mentioned above, the big BPE
-tokenizer actually does include some actual merges, which is why it pushes the stat to 1.1 
+tokenizer actually does include some actual merges, which is the stat is almost 1.1. 
 
 ------------avg_unicode_per_token-------------
             |    en    |    tr    |    zh    |
-Char-level  |    1.0022|    1.0022|    1.0022|
-Small BPE   |    1.0022|    1.0022|    1.0022|
-Big BPE     |       1.1|       1.1|       1.1|
+Char-level  |    1.0008|    1.0008|    1.0008|
+Small BPE   |    1.0008|    1.0008|    1.0008|
+Big BPE     |    1.0994|    1.0994|    1.0994|
 
 
 3. TOTAL TOKENS
@@ -37,7 +37,7 @@ so much meaning.
             |    en    |    tr    |    zh    |
 Char-level  |3.6827e+05|3.6838e+05|3.6827e+05|
 Small BPE   |3.0911e+05|3.2346e+05|3.6286e+05|
-Big BPE     |1.6223e+05|1.6766e+05|3.3537e+05|
+Big BPE     |  1.62e+05|1.6766e+05|3.3523e+05|
 
 
 4. AVERAGE TOKENS PER SENTENCE
