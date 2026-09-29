@@ -79,19 +79,17 @@ class CharTokenizer():
 
     def encode(self, text: str):
         """
-        Tokenizes a given string into characters. Unseen characters are replaced with the
+        Encodes a given string into a CharEncoding. Unseen characters are replaced with the
         unknown token ([UNK] by default).
 
         Parameters:
             text: str
                 The string to tokenize.
         Returns:
-            list[str]
-                A list of characters (tokens) from the input string, with unseen characters
-                replaced by the unknown token.
+            CharEncoding
+                A list-like object containing both the encodings and the actual tokens.
         """
         return CharEncoding(self.vocab, text, self.unk_token)
-        #return [self.vocab[char] if char in self.vocab else self.vocab[self.unk_token] for char in text]
 
     def from_file(self, path: str):
         """
