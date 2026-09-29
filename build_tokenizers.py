@@ -5,6 +5,27 @@ from tokenizers.pre_tokenizers import Whitespace
 import json
 from pathlib import Path
 
+class CharEncoding():
+    """
+    A class to keep encoded characters and their respective tokens together, similar to 
+    HuggingFace's tokenizers library.
+    """
+    def __init__(self, vocab: dict, text: str, unk_token: str = "[UNK]"):
+        self.encoding, self.tokens = [], []
+        unk_id = vocab[unk_token]
+        # Build lists of encoding numbers and actual tokens.
+        for char in text:
+            token = char if char in vocab else unk_token
+            self.tokens.append(token)
+            self.encoding.append(vocab.get(char, unk_id))
+
+    def __len__(self):
+    """
+    Helper function to provide the expected length of a CharEncoding. 
+    """
+        return len(self.encoding)
+
+
 class CharTokenizer():
     """
     A simple character-level tokenizer built to mimic how to train and use tokenizers in
@@ -69,7 +90,8 @@ class CharTokenizer():
                 A list of characters (tokens) from the input string, with unseen characters
                 replaced by the unknown token.
         """
-        return [char if char in self.vocab else self.unk_token for char in text]
+        return CharEncoding(self.vocab, text, self.unk_token)
+        #return [self.vocab[char] if char in self.vocab else self.vocab[self.unk_token] for char in text]
 
     def from_file(self, path: str):
         """

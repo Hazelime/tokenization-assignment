@@ -91,7 +91,7 @@ def print_sample_tokenizations(tokenizers: list, sample_sents: list[str]):
     sent_number = 1
     for sent in sample_sents:
         print(f"Sample sent #{sent_number}: {sent}")
-        print(f"Char-level: \t{" ".join(tokenizers[0].encode(sent))}")
+        print(f"Char-level: \t{" ".join(tokenizers[0].encode(sent).tokens)}")
         print(f"Small BPE: \t{" ".join(tokenizers[1].encode(sent).tokens)}")
         print(f"Big BPE: \t{" ".join(tokenizers[2].encode(sent).tokens)}\n")
         sent_number += 1
