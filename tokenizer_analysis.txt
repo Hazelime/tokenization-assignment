@@ -1,120 +1,128 @@
 1. VOCABULARY SIZE
-Given the stats below, it seems like the only real difference between the character-level
-tokenizer and the small BPE tokenizer is the whitespace token, which was ignored for the
-BPE tokenizers due to Whitespace pre-tokenization. Otherwise, both contain literally every
-character in the training set. The big BPE tokenizer, on the other hand, also adds a few
-merges (since the vocab_size limit was 10,000 > 9,446). The number of merges is still quite
-low, however, since there's not much space left after accounting for all the 9,443
-characters in the training set.
+Given that the initial alphabet (= number of unique characters in the training set +
+special tokens) is 9,444, there is evidently not much room for the small BPE tokenizer
+(with a vocabulary size of 10,000) to add merges that would make tokenization more
+efficient -- only about 550 merges could actually be included. The Big BPE tokenizer
+(with a vocabulary size of 20,000) has way more room for merges, which in theory should
+make it much more efficient.
 
 ------------------vocab_size------------------
             |    en    |    tr    |    zh    |
 Char-level  |      9444|      9444|      9444|
-Small BPE   |      9443|      9443|      9443|
-Big BPE     |     10000|     10000|     10000|
+Small BPE   |     10000|     10000|     10000|
+Big BPE     |     20000|     20000|     20000|
 
 
 2. AVERAGE UNICODE CHARACTERS PER TOKEN
-Again, the character-level tokenizer and the small BPE tokenizer are basically identical:
-the difference is just the inclusion of a whitespace token. As mentioned above, the big BPE
-tokenizer actually does include some actual merges, which is the stat is almost 1.1. 
+As expected, the small BPE tokenizer is only marginally more efficient than the character-
+level tokenizer, the difference being the 550-ish merges it was able to cram into its
+vocabulary. The big BPE tokenizer is much more efficient.
 
 ------------avg_unicode_per_token-------------
             |    en    |    tr    |    zh    |
 Char-level  |    1.0008|    1.0008|    1.0008|
-Small BPE   |    1.0008|    1.0008|    1.0008|
-Big BPE     |    1.0994|    1.0994|    1.0994|
+Small BPE   |    1.1036|    1.1036|    1.1036|
+Big BPE     |    2.5255|    2.5255|    2.5255|
 
 
 3. TOTAL TOKENS
-As expected, the character-level tokenizer results in the most tokens, with the small BPE
-model trailing only slightly behind. In comparison, the big BPE tokenizer creates about half
-the tokens for English and Turkish. For Chinese, however, the improvement is only marginal,
-which is expected since there are so many Chinese characters and since each character contains
-so much meaning.
+As expected, the character-level tokenizer results in the most tokens and the big BPE model
+trailing in the fewest. For English and Turkish the small BPE tokenizer needs about half
+the number of of tokens as the character-level tokenizer, and the big BPE tokenizer only a
+third. For Chinese, however, the improvement is only marginal for the small BPE tokenizer and
+less than 50% for the big BPE tokenizer. This is to be expected, however, since there are
+so many Chinese characters and since each character contains so much meaning.
 
 -----------------total_tokens-----------------
             |    en    |    tr    |    zh    |
 Char-level  |3.6827e+05|3.6838e+05|3.6827e+05|
-Small BPE   |3.0911e+05|3.2346e+05|3.6286e+05|
-Big BPE     |  1.62e+05|1.6766e+05|3.3523e+05|
+Small BPE   |1.7462e+05|1.8314e+05|3.4605e+05|
+Big BPE     |1.0783e+05|1.0608e+05|2.6742e+05|
 
 
 4. AVERAGE TOKENS PER SENTENCE
 Here, the few BPE merges for Chinese means that the average token per sentence is actually
-comparable for all three tokenizers. BPE clearly favors English more, with Turkish being 
-a kind of middle ground. As expected, average tokens per sentence goes down for all languages
-when going from character-level to small BPE to big BPE, since especially the big BPE tokenizer
-can use bigger tokens.
+somwhat comparable for all three tokenizers. BPE clearly benefits English and Turkish more.
+As expected, however, average tokens per sentence goes down for all languages when going
+from character-level to small BPE to big BPE, since especially the big BPE tokenizer has
+many bigger tokens to play with.
 
 -------------avg_tokens_per_sent--------------
             |    en    |    tr    |    zh    |
 Char-level  |    81.117|     98.63|    38.546|
-Small BPE   |    68.086|    86.602|     37.98|
-Big BPE     |    35.734|     44.89|    35.103|
+Small BPE   |    38.462|    49.033|     36.22|
+Big BPE     |    23.751|    28.401|    27.991|
 
 
 5. PATTERNS FROM SAMPLE SENTENCES
-Below are the different tokenizations for nine sample sentences: three for each language. The BPE
-tokenizers lack blank space due to the Whitespace pre-tokenizer in the transformer library. 
-Otherwise, the small BPE tokenization is virtually identical to the char-level tokenization,
-regardless of language.
+Below are the different tokenizations for nine sample sentences: three for each language. The
+BPE tokenizers use ▁ instead of whitespace due to the Metaspace pre-tokenizer in the
+transformers library.
 
-The big BPE tokenization provides more interesting results. Several common English words -- 
-including fairly long ones like "which" and "that" -- have received their own tokens, just like
-common affixes (e.g. "ation" and "ing"). Without knowing Turkish, I suppose the same is true
-there except perhaps to a smaller degree: we see e.g. the word "alan" and the long suffixes
-"asında" and "mıştır". As for Chinese, the only BPE merges I can see actually relate to numbers
-("14") and Western characters ("ord") rather than Chinese characters.
+In English, the small BPE mostly picks up on subwords ("un", "ed") and short, common
+words ("was", "to"). The big BPE instead picks up on most regular English words, with
+uncommon words, names, and punctuation being split up ("cor als," "Az ol ine", "Henry 's").
+The big BPE tokenization is actually quite readable.
+
+In Turkish, the difference between small and big BPE is surprisingly small (to someone 
+who doesn't know Turkish). Both seem to pick up on (what I assume to be) common suffixes 
+("an", "ine"), and the big BPE tokenization is only marginally more readable than the small
+one.
+
+In Chinese, the small BPE tokenizer performs basically the same as the character-level
+tokenizer, with the only real difference being Western words and numbers that came "for
+free" due to English and Turkish ("ord", "Imp", 50). The big BPE tokenizer actually merges
+some characters ("來的", "辦公室"), but only very rarely more than two.
 
 I guess I am a bit surprised that not more punctuation marks were included in merges. I also
-find it interesting that some seemingly arbitrary number combinations "make it" (19, 50),
-whereas others do not (7 8, 7 0). Investigating which number combinations are more likely to
-become merged would be an interesting study. Something else that could be interesting to 
-study would be how much "help" e.g. Turkish gets from English merges, and vice versa.
+find it interesting that some seemingly arbitrary number combinations "make it" (19, 50) in
+the small BPE tokenization, whereas others do not (4 6, 7 0). Investigating the order of 
+number merges when increasing BPE vocabulary size would be an interesting study. Something
+else that could be interesting to study would be how much "help" e.g. Turkish gets from
+English merges, and vice versa.
 
 
 Sample sent #1: In 1536, the Act of Union was passed under Henry's rule which had a long-lasting effect on Wales as a nation.
 Char-level:     I n   1 5 3 6 ,   t h e   A c t   o f   U n i o n   w a s   p a s s e d   u n d e r   H e n r y ' s   r u l e   w h i c h   h a d   a   l o n g - l a s t i n g   e f f e c t   o n   W a l e s   a s   a   n a t i o n .
-Small BPE:      I n 1 5 3 6 , t h e A c t o f U n i o n w a s p a s s e d u n d e r H e n r y ' s r u l e w h i c h h a d a l o n g - l a s t i n g e f f e c t o n W a l e s a s a n a t i o n .
-Big BPE:        In 15 3 6 , the A ct of Un ion was p as s ed und er H en r y ' s ru le which had a l ong - l ast ing e ff ect on W al es as a n ation .
+Small BPE:      ▁In ▁1 5 3 6 , ▁the ▁A ct ▁of ▁U n ion ▁was ▁p as s ed ▁un der ▁H en ry 's ▁r u le ▁which ▁had ▁a ▁l ong - l ast ing ▁e f f ect ▁on ▁W al es ▁as ▁a ▁n ation .
+Big BPE:        ▁In ▁15 36 , ▁the ▁Act ▁of ▁Union ▁was ▁pass ed ▁under ▁Henry 's ▁rule ▁which ▁had ▁a ▁long - l ast ing ▁effect ▁on ▁W ales ▁as ▁a ▁n ation .
 
 Sample sent #2: Amans and Azoline moved back to France in 1856 where he died in 1888, château de Lévis Saint Nom (78), never having returned to Louisiana.
 Char-level:     A m a n s   a n d   A z o l i n e   m o v e d   b a c k   t o   F r a n c e   i n   1 8 5 6   w h e r e   h e   d i e d   i n   1 8 8 8 ,   c h â t e a u   d e   L é v i s   S a i n t   N o m   ( 7 8 ) ,   n e v e r   h a v i n g   r e t u r n e d   t o   L o u i s i a n a .
-Small BPE:      A m a n s a n d A z o l i n e m o v e d b a c k t o F r a n c e i n 1 8 5 6 w h e r e h e d i e d i n 1 8 8 8 , c h â t e a u d e L é v i s S a i n t N o m ( 7 8 ) , n e v e r h a v i n g r e t u r n e d t o L o u i s i a n a .
-Big BPE:        A man s and A z ol ine mo v ed b ack to F ran ce in 18 5 6 wh ere he di ed in 18 8 8 , ch â te a u de L é v is S ain t N om ( 7 8 ), ne ver ha v ing ret ur n ed to L ou isi an a .
+Small BPE:      ▁A m ans ▁and ▁A z ol ine ▁m ov ed ▁b ack ▁to ▁F r an ce ▁in ▁18 5 6 ▁wh ere ▁he ▁d i ed ▁in ▁18 8 8 , ▁ch â te a u ▁de ▁L é v is ▁S ain t ▁N om ▁( 7 8 ) , ▁n ev er ▁hav ing ▁r et ur n ed ▁to ▁L o u isi an a .
+Big BPE:        ▁Am ans ▁and ▁Az ol ine ▁moved ▁back ▁to ▁France ▁in ▁18 56 ▁where ▁he ▁died ▁in ▁188 8, ▁ch â te au ▁de ▁L é v is ▁Saint ▁N om ▁( 78 ), ▁never ▁having ▁returned ▁to ▁Lou isi ana .
 
 Sample sent #3: The corals will become bleached (lose their colours) and many species that live on and around the reef will be in danger.
 Char-level:     T h e   c o r a l s   w i l l   b e c o m e   b l e a c h e d   ( l o s e   t h e i r   c o l o u r s )   a n d   m a n y   s p e c i e s   t h a t   l i v e   o n   a n d   a r o u n d   t h e   r e e f   w i l l   b e   i n   d a n g e r .
-Small BPE:      T h e c o r a l s w i l l b e c o m e b l e a c h e d ( l o s e t h e i r c o l o u r s ) a n d m a n y s p e c i e s t h a t l i v e o n a n d a r o u n d t h e r e e f w i l l b e i n d a n g e r .
-Big BPE:        The c or al s w ill bec ome b le ach ed ( lo se their c olo ur s ) and many sp ec ies that li ve on and ar o und the re e f w ill be in dan ger .
+Small BPE:      ▁The ▁c or al s ▁w ill ▁bec ome ▁b le ac he d ▁( l os e ▁their ▁c ol our s ) ▁and ▁m any ▁sp ec ies ▁that ▁l ive ▁on ▁and ▁ar ound ▁the ▁re e f ▁w ill ▁be ▁in ▁d ang er .
+Big BPE:        ▁The ▁cor als ▁will ▁become ▁b le ached ▁( l ose ▁their ▁colour s) ▁and ▁many ▁species ▁that ▁live ▁on ▁and ▁around ▁the ▁re ef ▁will ▁be ▁in ▁d anger .
 
 Sample sent #4: Arşivde yer alan farklı iki parça da 2017'de "3 Gerald Remix / 24 TSIM 2" ismiyle Michigan'da bir plak mağazasında satılmıştır.
 Char-level:     A r ş i v d e   y e r   a l a n   f a r k l ı   i k i   p a r ç a   d a   2 0 1 7 ' d e   " 3   G e r a l d   R e m i x   /   2 4   T S I M   2 "   i s m i y l e   M i c h i g a n ' d a   b i r   p l a k   m a ğ a z a s ı n d a   s a t ı l m ı ş t ı r .
-Small BPE:      A r ş i v d e y e r a l a n f a r k l ı i k i p a r ç a d a 2 0 1 7 ' d e " 3 G e r a l d R e m i x / 2 4 T S I M 2 " i s m i y l e M i c h i g a n ' d a b i r p l a k m a ğ a z a s ı n d a s a t ı l m ı ş t ı r .
-Big BPE:        Ar ş iv de yer alan f ark lı iki par ç a da 201 7 ' de " 3 G er al d R em i x / 2 4 T S I M 2 " is m iyle M ich ig an ' da bir pl ak ma ğ az asında s at ıl mıştır .
+Small BPE:      ▁Ar ş iv de ▁yer ▁al an ▁f ark lı ▁ik i ▁p ar ç a ▁da ▁20 17 ' de ▁" 3 ▁G er al d ▁R em i x ▁ / ▁2 4 ▁T S I M ▁2 " ▁is m iy le ▁M ich ig an ' da ▁bir ▁p l ak ▁m ağ az asında ▁s at ıl m ışt ır .
+Big BPE:        ▁Ar ş iv de ▁yer ▁alan ▁farklı ▁iki ▁parç a ▁da ▁2017 'de ▁" 3 ▁G eral d ▁R em ix ▁/ ▁24 ▁T S I M ▁2 " ▁ism iyle ▁Mich ig an 'da ▁bir ▁pl ak ▁mağ az asında ▁sat ıl mıştır .
 
 Sample sent #5: Kayseri iline 54 km, Bünyan ilçesine 19 km uzaklıktadır.
 Char-level:     K a y s e r i   i l i n e   5 4   k m ,   B ü n y a n   i l ç e s i n e   1 9   k m   u z a k l ı k t a d ı r .
-Small BPE:      K a y s e r i i l i n e 5 4 k m , B ü n y a n i l ç e s i n e 1 9 k m u z a k l ı k t a d ı r .
-Big BPE:        K ay s eri il ine 5 4 k m , B ün yan il ç es ine 19 k m uz ak lık tadır .
+Small BPE:      ▁K ay s eri ▁il ine ▁ 5 4 ▁k m , ▁B ün y an ▁il ç es ine ▁19 ▁k m ▁ uz ak lık tad ır .
+Big BPE:        ▁K ays eri ▁iline ▁5 4 ▁km, ▁B ün yan ▁ilçesine ▁19 ▁km ▁uzaklık tad ır .
 
 Sample sent #6: Germantown akademisine devam ettikten sonra 1869-1870 yılları Fransa ve Almanya'da okullarda geçti.
 Char-level:     G e r m a n t o w n   a k a d e m i s i n e   d e v a m   e t t i k t e n   s o n r a   1 8 6 9 - 1 8 7 0   y ı l l a r ı   F r a n s a   v e   A l m a n y a ' d a   o k u l l a r d a   g e ç t i .
-Small BPE:      G e r m a n t o w n a k a d e m i s i n e d e v a m e t t i k t e n s o n r a 1 8 6 9 - 1 8 7 0 y ı l l a r ı F r a n s a v e A l m a n y a ' d a o k u l l a r d a g e ç t i .
-Big BPE:        G er man to w n ak a de m is ine dev am et t ik ten sonra 18 6 9 - 18 7 0 yıl ları F ran sa ve Al man ya ' da ok ul lar da geç ti .
+Small BPE:      ▁G er man t own ▁a k ad em is ine ▁dev am ▁et t ik ten ▁sonra ▁18 6 9 - 18 7 0 ▁yıl ları ▁F r ans a ▁ve ▁Al man ya ' da ▁o k ul lar da ▁g eç ti .
+Big BPE:        ▁German t own ▁ak adem isine ▁devam ▁et tik ten ▁sonra ▁18 69 - 18 70 ▁yılları ▁Fransa ▁ve ▁Almanya 'da ▁okul larda ▁geç ti .
 
 Sample sent #7: 藝術家會在作品中控制灰分的百分比，若降低灰的比例，控制的程度更高 Ford & Impey, 46-50 。
 Char-level:     藝 術 家 會 在 作 品 中 控 制 灰 分 的 百 分 比 ， 若 降 低 灰 的 比 例 ， 控 制 的 程 度 更 高   F o r d   &   I m p e y ,   4 6 - 5 0   。
-Small BPE:      藝 術 家 會 在 作 品 中 控 制 灰 分 的 百 分 比 ， 若 降 低 灰 的 比 例 ， 控 制 的 程 度 更 高 F o r d & I m p e y , 4 6 - 5 0 。
-Big BPE:        藝 術 家 會 在 作 品 中 控 制 灰 分 的 百 分 比 ， 若 降 低 灰 的 比 例 ， 控 制 的 程 度 更 高 F ord & I m p ey , 4 6 - 50 。
+Small BPE:      ▁ 藝 術 家 會 在 作 品 中 控 制 灰 分 的 百 分 比 ， 若 降 低 灰 的 比 例 ， 控 制 的 程 度 更 高 ▁F ord ▁ & ▁I m p ey , ▁4 6 - 50 ▁ 。
+Big BPE:        ▁ 藝術 家 會在 作品 中 控制 灰 分 的 百 分 比 ，若 降低 灰 的 比例 ， 控制 的 程度 更 高 ▁F ord ▁& ▁Imp ey , ▁4 6 - 50 ▁。
 
 Sample sent #8: 這不是外來的概念，傳統是由瑪泰在死亡前以一種被稱為「馬卡加」(mavaega)的意志形式出現，後來則由公共信託辦公室和法律從業者負責處理遺產管理。
 Char-level:     這 不 是 外 來 的 概 念 ， 傳 統 是 由 瑪 泰 在 死 亡 前 以 一 種 被 稱 為 「 馬 卡 加 」 ( m a v a e g a ) 的 意 志 形 式 出 現 ， 後 來 則 由 公 共 信 託 辦 公 室 和 法 律 從 業 者 負 責 處 理 遺 產 管 理 。
-Small BPE:      這 不 是 外 來 的 概 念 ， 傳 統 是 由 瑪 泰 在 死 亡 前 以 一 種 被 稱 為 「 馬 卡 加 」 ( m a v a e g a ) 的 意 志 形 式 出 現 ， 後 來 則 由 公 共 信 託 辦 公 室 和 法 律 從 業 者 負 責 處 理 遺 產 管 理 。
-Big BPE:        這 不 是 外 來 的 概 念 ， 傳 統 是 由 瑪 泰 在 死 亡 前 以 一 種 被 稱 為 「 馬 卡 加 」 ( ma v a e g a ) 的 意 志 形 式 出 現 ， 後 來 則 由 公 共 信 託 辦 公 室 和 法 律 從 業 者 負 責 處 理 遺 產 管 理 。
+Small BPE:      ▁ 這 不 是 外 來 的 概 念 ， 傳 統 是 由 瑪 泰 在 死 亡 前 以 一 種 被 稱 為 「 馬 卡 加 」 ( m av a e g a ) 的 意 志 形 式 出 現 ， 後 來 則 由 公 共 信 託 辦 公 室 和 法 律 從 業 者 負 責 處 理 遺 產 管 理 。
+Big BPE:        ▁這 不是 外 來的 概念 ， 傳統 是由 瑪 泰 在 死亡 前 以 一種 被 稱為「 馬 卡 加 」 ( m ava eg a ) 的意 志 形式 出現 ，後來 則 由 公共 信 託 辦公室 和 法律 從 業 者 負責 處理 遺 產 管理 。
 
 Sample sent #9: 共有14条线路，仅学生上下课期间运营。
 Char-level:     共 有 1 4 条 线 路 ， 仅 学 生 上 下 课 期 间 运 营 。
-Small BPE:      共 有 1 4 条 线 路 ， 仅 学 生 上 下 课 期 间 运 营 。
-Big BPE:        共 有 14 条 线 路 ， 仅 学 生 上 下 课 期 间 运 营 。
+Small BPE:      ▁ 共 有 14 条 线 路 ， 仅 学 生 上 下 课 期 间 运 营 。
+Big BPE:        ▁ 共有 14 条 线路 ， 仅 学生 上下 课 期间 运营 。

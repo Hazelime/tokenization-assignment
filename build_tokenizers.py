@@ -1,7 +1,7 @@
 from tokenizers import Tokenizer
 from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
-from tokenizers.pre_tokenizers import Whitespace
+from tokenizers.pre_tokenizers import Metaspace
 import json
 from pathlib import Path
 
@@ -11,19 +11,19 @@ class CharEncoding():
     HuggingFace's tokenizers library.
     """
     def __init__(self, vocab: dict, text: str, unk_token: str = "[UNK]"):
-        self.encoding, self.tokens = [], []
+        self.ids, self.tokens = [], []
         unk_id = vocab[unk_token]
         # Build lists of encoding numbers and actual tokens.
         for char in text:
             token = char if char in vocab else unk_token
             self.tokens.append(token)
-            self.encoding.append(vocab.get(char, unk_id))
+            self.ids.append(vocab.get(char, unk_id))
 
     def __len__(self):
         """
         Helper function to provide the expected length of a CharEncoding. 
         """
-        return len(self.encoding)
+        return len(self.ids)
 
 
 class CharTokenizer():
@@ -163,12 +163,14 @@ def build_bpe_tokenizer(train_files: list[str], vocab_size: int, save_path: str)
     # Initialize the BPE tokenizer with an unknown token.
     bpe_tokenizer = Tokenizer(BPE(unk_token = "[UNK]"))
     
-    # Set the pre-tokenizer to whitespace so the tokenizer learns subword units within words.
-    bpe_tokenizer.pre_tokenizer = Whitespace()
+    # Set the pre-tokenizer to Metaspace so the tokenizer 1) only learns subword units within
+    # words, but 2) also keeps some kind of word separator (with whitespace being replaced
+    # by _)
+    bpe_tokenizer.pre_tokenizer = Metaspace()
     
     # Create a BPE trainer with special tokens and the specified vocabulary size. 
-    bpe_trainer = BpeTrainer(special_tokens = ["[UNK]", "[EOS]"],
-                             vocab_size = vocab_size)
+    bpe_trainer = BpeTrainer(vocab_size = vocab_size,
+                             special_tokens = ["[UNK]", "[EOS]"])
     
     # Train the BPE tokenizer on the training data.
     bpe_tokenizer.train(train_files, bpe_trainer)
@@ -200,7 +202,7 @@ if __name__ == '__main__':
 
     # Train and save small and big BPE tokenizers.
     print("Training and saving BPE tokenizers...")
-    build_bpe_tokenizer(train_files, vocab_size = 2000, save_path = "tokenizers/bpe_2000_tokenizer.json")
     build_bpe_tokenizer(train_files, vocab_size = 10000, save_path = "tokenizers/bpe_10000_tokenizer.json")
-    print("BPE tokenizers saved in tokenizers/bpe_2000_tokenizer.json and tokenizers/bpe_10000_tokenizer.json")
+    build_bpe_tokenizer(train_files, vocab_size = 20000, save_path = "tokenizers/bpe_20000_tokenizer.json")
+    print("BPE tokenizers saved in tokenizers/bpe_10000_tokenizer.json and tokenizers/bpe_20000_tokenizer.json")
 

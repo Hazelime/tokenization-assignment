@@ -107,8 +107,8 @@ if __name__ == '__main__':
 
     # Load the tokenizers.
     tokenizers = [CharTokenizer().from_file("tokenizers/char_tokenizer.json"), 
-                  Tokenizer.from_file("tokenizers/bpe_2000_tokenizer.json"),
-                  Tokenizer.from_file("tokenizers/bpe_10000_tokenizer.json")]
+                  Tokenizer.from_file("tokenizers/bpe_10000_tokenizer.json"),
+                  Tokenizer.from_file("tokenizers/bpe_20000_tokenizer.json")]
 
     # Three sample sentences for each language.
     sample_sents = ["In 1536, the Act of Union was passed under Henry's rule which had a long-lasting effect on Wales as a nation.",
