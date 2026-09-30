@@ -6,11 +6,11 @@ efficient -- only about 550 merges could actually be included. The Big BPE token
 (with a vocabulary size of 20,000) has way more room for merges, which in theory should
 make it much more efficient.
 
-------------------vocab_size------------------
-            |    en    |    tr    |    zh    |
-Char-level  |      9444|      9444|      9444|
-Small BPE   |     10000|     10000|     10000|
-Big BPE     |     20000|     20000|     20000|
+---------------------vocab_size---------------------
+            |     en     |     tr     |     zh     |
+Char-level  |        9444|        9444|        9444|
+Small BPE   |       10000|       10000|       10000|
+Big BPE     |       20000|       20000|       20000|
 
 
 2. AVERAGE UNICODE CHARACTERS PER TOKEN
@@ -18,11 +18,11 @@ As expected, the small BPE tokenizer is only marginally more efficient than the 
 level tokenizer, the difference being the 550-ish merges it was able to cram into its
 vocabulary. The big BPE tokenizer is much more efficient.
 
-------------avg_unicode_per_token-------------
-            |    en    |    tr    |    zh    |
-Char-level  |    1.0008|    1.0008|    1.0008|
-Small BPE   |    1.1036|    1.1036|    1.1036|
-Big BPE     |    2.5255|    2.5255|    2.5255|
+---------------avg_unicode_per_token----------------
+            |     en     |     tr     |     zh     |
+Char-level  |     1.00085|     1.00085|     1.00085|
+Small BPE   |      1.1036|      1.1036|      1.1036|
+Big BPE     |     2.52545|     2.52545|     2.52545|
 
 
 3. TOTAL TOKENS
@@ -33,11 +33,11 @@ third. For Chinese, however, the improvement is only marginal for the small BPE 
 less than 50% for the big BPE tokenizer. This is to be expected, however, since there are
 so many Chinese characters and since each character contains so much meaning.
 
------------------total_tokens-----------------
-            |    en    |    tr    |    zh    |
-Char-level  |3.6827e+05|3.6838e+05|3.6827e+05|
-Small BPE   |1.7462e+05|1.8314e+05|3.4605e+05|
-Big BPE     |1.0783e+05|1.0608e+05|2.6742e+05|
+--------------------total_tokens--------------------
+            |     en     |     tr     |     zh     |
+Char-level  |      368269|      368383|      368266|
+Small BPE   |      174617|      183138|      346050|
+Big BPE     |      107828|      106077|      267425|
 
 
 4. AVERAGE TOKENS PER SENTENCE
@@ -47,11 +47,11 @@ As expected, however, average tokens per sentence goes down for all languages wh
 from character-level to small BPE to big BPE, since especially the big BPE tokenizer has
 many bigger tokens to play with.
 
--------------avg_tokens_per_sent--------------
-            |    en    |    tr    |    zh    |
-Char-level  |    81.117|     98.63|    38.546|
-Small BPE   |    38.462|    49.033|     36.22|
-Big BPE     |    23.751|    28.401|    27.991|
+----------------avg_tokens_per_sent-----------------
+            |     en     |     tr     |     zh     |
+Char-level  |     81.1165|       98.63|     38.5457|
+Small BPE   |     38.4619|     49.0329|     36.2204|
+Big BPE     |     23.7507|     28.4008|     27.9909|
 
 
 5. PATTERNS FROM SAMPLE SENTENCES

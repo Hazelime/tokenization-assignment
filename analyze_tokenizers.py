@@ -60,16 +60,16 @@ def print_stats(stats: dict[dict[dict]], tokenizers: list):
     names = ["Char-level", "Small BPE", "Big BPE"]
     for stat in ["vocab_size", "avg_unicode_per_token", "total_tokens", "avg_tokens_per_sent"]:
         # ^ creates centering; - is the fill character; 46 is the total width.
-        print(f"{stat:-^46}")
-        print(f"{'':12}|{'en':^10}|{'tr':^10}|{'zh':^10}|")
+        print(f"{stat:-^52}")
+        print(f"{'':12}|{'en':^12}|{'tr':^12}|{'zh':^12}|")
         for name, tokenizer in zip(names, tokenizers):
             # :10.5g means that each cell will be 10 character wide and contain numbers with
             # up to 5 significant figures.
             print(
                 f"{name:12}|"
-                f"{stats[tokenizer]['en'][stat]:10.5g}|"
-                f"{stats[tokenizer]['tr'][stat]:10.5g}|"
-                f"{stats[tokenizer]['zh'][stat]:10.5g}|"
+                f"{stats[tokenizer]['en'][stat]:12.6g}|"
+                f"{stats[tokenizer]['tr'][stat]:12.6g}|"
+                f"{stats[tokenizer]['zh'][stat]:12.6g}|"
             )
         print()
 
