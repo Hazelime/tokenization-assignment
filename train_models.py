@@ -9,6 +9,7 @@ from models import TransformerBlock, DecoderTransformer
 from pathlib import Path
 import matplotlib.pyplot as plt
 from plotting import plot_losses, plot_loss_comparison
+from hyperparameters import *
 
 
 class LMDataset(Dataset):
@@ -110,9 +111,11 @@ def evaluate(model: DecoderTransformer,
             x = x.to(device)
             y = y.to(device)
 
+            # Forward pass through the model to get predictions.
+            logits = model(x)
+
             # Flatten the logits and corresponding targets since CrossEntropyLoss expects the class
             # dimension (V) second. We're making B * T predictions either way.
-            logits = model(x)
             b, t, v = logits.shape
             loss = loss_function(logits.reshape(b * t, v),
                                  y.reshape(b * t))
@@ -183,12 +186,12 @@ def train_model(tokenizer: Tokenizer or CharTokenizer,
     """
     print(f"Setting up model #{n}...")
     model = DecoderTransformer(V = len(tokenizer.get_vocab()),
-                                C = C,
-                                n_layers = n_layers,
-                                n_heads = n_heads,
-                                ff_dim = ff_dim,
-                                dropout_rate = dropout_rate,
-                                T = T).to(device)
+                               C = C,
+                               n_layers = n_layers,
+                               n_heads = n_heads,
+                               ff_dim = ff_dim,
+                               dropout_rate = dropout_rate,
+                               T = T).to(device)
     # Calculate model size by number of parameters.
     n_params = sum(p.numel() for p in model.parameters())
     print(f"Model #{n} has {n_params:,} parameters.")
@@ -256,17 +259,6 @@ if __name__ == '__main__':
     # Sample syntax:
     # python3 train_models.py 
 
-    # Hyperparameters. Use recommended values and epochs = 5, batch_size = 32, lr = 0.001.
-    n_layers = 2        # Number of Transformer layers
-    C = 256             # Hidden dimension
-    n_heads = 4         # Number of attention heads
-    ff_dim = 1024       # Feed-forward dimension
-    dropout_rate = 0.1 
-    T = 256             # Context-length
-    epochs = 5
-    B = 32              # Batch size. I tried 64 but then the GPU ran out of memory.
-    lr = 0.001          # Learning rate.
-
     train_paths = ["/srv/data/lt2326-h26/a1/train/en.txt", 
                    "/srv/data/lt2326-h26/a1/train/tr.txt", 
                    "/srv/data/lt2326-h26/a1/train/zh.txt"]
@@ -279,7 +271,8 @@ if __name__ == '__main__':
                   Tokenizer.from_file("tokenizers/bpe_10000_tokenizer.json"),
                   Tokenizer.from_file("tokenizers/bpe_20000_tokenizer.json")]
     
-    # Encode the training and validation data with different tokenizers.
+    # Encode the training and validation data with different tokenizers. 
+    # T = context length, B = batch size are imported from hyperparameters.py.
     print("Encoding training and validation data with the character-level tokenizer...")
     char_train = get_encoded_dataloader(train_paths, tokenizers[0], T, B)
     char_valid = get_encoded_dataloader(valid_paths, tokenizers[0], T, B)
@@ -305,6 +298,7 @@ if __name__ == '__main__':
         train_losses, valid_losses = [], []
         
         # Train the model and get the training and validation losses for each epoch.
+        # The hyperparameters are imported from hyperparameters.py.
         model, train_losses, valid_losses = train_model(tokenizer = tokenizer,
                                                         train_loader = train_loader,
                                                         valid_loader = valid_loader,
