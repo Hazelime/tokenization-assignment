@@ -2,7 +2,8 @@ from tokenizers import Tokenizer
 from build_tokenizers import CharTokenizer
 
 
-def get_stats(tokenizer, valid_path: str):
+def get_stats(tokenizer: Tokenizer or CharTokenizer,
+              valid_path: str) -> tuple[int, float, int, float]:
     """
     Calculates and returns various tokenization stats based on a tokenizer and a text file.
 
@@ -26,23 +27,26 @@ def get_stats(tokenizer, valid_path: str):
     # Get vocabulary size.
     vocab = tokenizer.get_vocab()
     vocab_size = len(vocab)
+    
     # Get total number of Unicode characters.
     total_unicode = 0
     for token in vocab:
         total_unicode += len(token)
+    
     # Get total number of lines and tokens.
     total_tokens, total_lines = 0, 0
     with open(valid_path, "r", encoding="utf-8") as f:
         for line in f:
             total_lines += 1
             total_tokens += len(tokenizer.encode(line.strip()))
+    
     # Return vocabulary size, average number of Unicode characters per token, total number
     # of tokens needed to encode the validation file, and the average number of tokens per
     # sentence. 
     return vocab_size, total_unicode/vocab_size, total_tokens, total_tokens/total_lines
 
 
-def print_stats(stats: dict[dict[dict]], tokenizers: list):
+def print_stats(stats: dict[dict[dict]], tokenizers: list[Tokenizer or CharTokenizer]) -> None:
     """
     Prints pretty tables for all stat x tokenizer x language combos, like this:
     -------------avg_tokens_per_sent--------------
@@ -59,22 +63,22 @@ def print_stats(stats: dict[dict[dict]], tokenizers: list):
     """
     names = ["Char-level", "Small BPE", "Big BPE"]
     for stat in ["vocab_size", "avg_unicode_per_token", "total_tokens", "avg_tokens_per_sent"]:
-        # ^ creates centering; - is the fill character; 46 is the total width.
+        # ^ creates centering; - is the fill character; 52 is the total width.
         print(f"{stat:-^52}")
         print(f"{'':12}|{'en':^12}|{'tr':^12}|{'zh':^12}|")
         for name, tokenizer in zip(names, tokenizers):
-            # :10.5g means that each cell will be 10 character wide and contain numbers with
-            # up to 5 significant figures.
+            # :12.6g means that each cell will be 12 character wide and contain numbers with
+            # up to 6 significant figures.
             print(
                 f"{name:12}|"
                 f"{stats[tokenizer]['en'][stat]:12.6g}|"
                 f"{stats[tokenizer]['tr'][stat]:12.6g}|"
                 f"{stats[tokenizer]['zh'][stat]:12.6g}|"
             )
-        print()
+        print() # New line after each table.
 
 
-def print_sample_tokenizations(tokenizers: list, sample_sents: list[str]):
+def print_sample_tokenizations(tokenizers: list, sample_sents: list[str]) -> None:
     """
     Prints pretty tokenization comparisons for given tokenizers and sentences, like this:
     Sample sent #9: 共有14条线路，仅学生上下课期间运营。
@@ -126,10 +130,11 @@ if __name__ == '__main__':
     for tokenizer in tokenizers:
         # Create a dictionary entry for each tokenizer unless it already exists.
         if tokenizer not in stats: stats[tokenizer] = {}
+        
         # Extract stats for every tokenizer x language combo and save them in stats.
         for path in valid_paths:
             vocab_size, avg_unicode_per_token, total_tokens, avg_tokens_per_sent = get_stats(tokenizer = tokenizer,
-                                                                                            valid_path = path)
+                                                                                             valid_path = path)
             lang_code = path[-6:-4]
             stats[tokenizer][lang_code] = {
                 "vocab_size": vocab_size,
@@ -137,6 +142,8 @@ if __name__ == '__main__':
                 "total_tokens": total_tokens,
                 "avg_tokens_per_sent": avg_tokens_per_sent
             }
+    
+    # Print stats and sample tokenizations for all tokenizers.
     print_stats(stats, tokenizers)
     print_sample_tokenizations(tokenizers, sample_sents)
                                

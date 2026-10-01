@@ -19,6 +19,20 @@ V = vocabulary size
 
 
 class TransformerBlock(nn.Module):
+    """
+    A single Transformer block consisting of multi-head self-attention and a feedforward
+    neural network, with residual connections, causal masking, and layer pre-normalization. 
+
+    Parameters:
+        C: int
+            The number of hidden dimensions (embedding size).
+        n_heads: int
+            The number of attention heads in the multi-head self-attention.
+        ff_dim: int
+            The dimension of the feedforward neural network.
+        dropout_rate: float
+            The dropout rate for regularization in the feedforward network.
+    """
     def __init__(self,
                  C: int = 256,
                  n_heads: int = 4,
@@ -55,14 +69,12 @@ class TransformerBlock(nn.Module):
             nn.Dropout(dropout_rate)
         )
     
-    def forward(self, x):
-        # Create a mask the upper-right triangle to remove access to future context.
-        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Creates a mask from the upper-right triangular ("triu") part of a T x T matrix
         # of 1's, since 1 = True = masked in the multihead attention layer. This mask 
         # will remove access to future context. See attn_mask in
         # https://docs.pytorch.org/docs/2.14/generated/torch.nn.MultiheadAttention.html
-        # Diagonal = 1 determines the size of the triangle. See examples in
+        # Diagonal = 1 determines the size/placement of the triangle. See examples in
         # https://docs.pytorch.org/docs/2.14/generated/torch.triu.html
         B, T, C = x.shape
         mask = torch.triu(torch.ones(T, T, device = x.device),
@@ -72,7 +84,7 @@ class TransformerBlock(nn.Module):
         x_norm = self.norm1(x)
 
         # Pass through multi-head attention layer and add the residual x.
-        # Use [0] to only get the output (not the weights, which is [1]).
+        # Use [0] to get only the output (not the weights, which is [1]).
         # (B, T, C) -> (B, T, C)
         x = x + self.multihead_attention(query = x_norm,
                                          key = x_norm,
@@ -88,6 +100,23 @@ class TransformerBlock(nn.Module):
 
 
 class DecoderTransformer(nn.Module):
+    """
+    A decoder-only Transformer model for autoregressive language modeling. It consists of
+    token embeddings, positional embeddings, a series of Transformer blocks, and an output
+    layer that maps to the vocabulary size.
+
+    Parameters:
+        V: int
+            The vocabulary size (number of unique tokens).
+        C: int
+            The number of hidden dimensions (embedding size).
+        n_layers: int
+            The number of Transformer blocks.
+        n_heads: int
+            The number of attention heads in each Transformer block.
+        ff_dim: int
+            The dimension of the feedforward neural network in each Transformer block. 
+    """
     def __init__(self,
                  V: int,
                  C: int = 256,
@@ -117,19 +146,14 @@ class DecoderTransformer(nn.Module):
         # Unembedding/output layer (B, T, C) -> (B, T, V)
         self.output = nn.Linear(C, V)
     
-    def forward(self, x):
-        # Legend for matrix comments below:
-        #   B = batch size
-        #   T = context length
-        #   C = number of hidden dimensions
-        #   V = vocabulary size
-
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Token embeddings. (B, T) -> (B, T, C)
         token_embeddings = self.token_embeddings(x)
         
         # Position embeddings. (T) -> (T, C)
         B, T = x.shape
-        # Create a list of positions from 0 to T-1.
+        # Create a list of positions from 0 to T-1. Arange creates a new tensor, so we need
+        # to put it on the same device as x.
         positions = torch.arange(T, device = x.device)
         position_embeddings = self.position_embeddings(positions)
         

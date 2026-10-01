@@ -9,17 +9,26 @@ class CharEncoding():
     """
     A class to keep encoded characters and their respective tokens together, similar to 
     HuggingFace's tokenizers library.
+
+    Parameters:
+        vocab: dict
+            A dictionary mapping tokens to their respective integer indices.
+        text: str
+            The string to encode.
+        unk_token: str
+            The token to use for unseen characters. Defaults to "[UNK]".
     """
     def __init__(self, vocab: dict, text: str, unk_token: str = "[UNK]"):
         self.ids, self.tokens = [], []
         unk_id = vocab[unk_token]
+        
         # Build lists of encoding numbers and actual tokens.
         for char in text:
             token = char if char in vocab else unk_token
             self.tokens.append(token)
             self.ids.append(vocab.get(char, unk_id))
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Helper function to provide the expected length of a CharEncoding. 
         """
@@ -30,13 +39,18 @@ class CharTokenizer():
     """
     A simple character-level tokenizer built to mimic how to train and use tokenizers in
     HuggingFace's tokenizers library. Uses an [UNK] token for unseen characters by default.
+
+    Parameters:
+        special_tokens: list[str]
+            A list of special tokens to include in the vocabulary. The first token in the
+            list will be used as the unknown token. Defaults to ["[UNK]"].
     """
     def __init__(self, special_tokens: list[str] = ["[UNK]"]):
         self.vocab = dict()
         self.special_tokens = special_tokens
         self.unk_token = special_tokens[0]
     
-    def train(self, files: list[str]):
+    def train(self, files: list[str]) -> None:
         """
         Trains the chracter-level tokenizer on a given list of files. Each token is associated
         with a unique integer index, with the unknown token ([UNK] by default) being 0.
@@ -51,6 +65,8 @@ class CharTokenizer():
         for special_token in self.special_tokens:
             self.vocab[special_token] = idx
             idx += 1
+        
+        # Add all unique characters from the training files to the vocabulary.
         for file in files:
             with open(file, "r") as f:
                 for line in f:
@@ -59,16 +75,16 @@ class CharTokenizer():
                             self.vocab[char] = idx
                             idx += 1
 
-    def save(self, path: str):
+    def save(self, path: str) -> None:
         """
         Saves the tokenizer (unknown token + vocabulary) to a JSON file for later use.
 
         Parameters:
             path: str
-                The file path where the tokenizer should be saved. The parent directory will be
-                created if it doesn't exist.
+                The file path where the tokenizer should be saved. The parent directory will
+                be created if it doesn't exist.
         """
-        # Create the parent directory if it doesn't exist (in case the class is used elsewhere).
+        # Create the parent directory if it doesn't exist.
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         
@@ -81,7 +97,7 @@ class CharTokenizer():
                         indent = 4,
                         ensure_ascii = False) 
 
-    def encode(self, text: str):
+    def encode(self, text: str) -> CharEncoding:
         """
         Encodes a given string into a CharEncoding. Unseen characters are replaced with the
         unknown token ([UNK] by default).
@@ -113,17 +129,17 @@ class CharTokenizer():
             self.vocab = data["vocab"]
         return self
 
-    def get_vocab(self):
+    def get_vocab(self) -> dict[str, int]:
         """
         Returns the vocabulary.
         """
         return self.vocab
 
 
-def build_char_tokenizer(train_files: list[str], save_path: str):
+def build_char_tokenizer(train_files: list[str], save_path: str) -> None:
     """
-    Trains a character-level tokenizer on a given list of files and saves it to a specified path.
-    The file will look like this:
+    Trains a character-level tokenizer on a given list of files and saves it to a specified
+    path. The file will look like this:
     {
         "unk_token": "[UNK]",
         "vocab": {
@@ -164,8 +180,7 @@ def build_bpe_tokenizer(train_files: list[str], vocab_size: int, save_path: str)
     bpe_tokenizer = Tokenizer(BPE(unk_token = "[UNK]"))
     
     # Set the pre-tokenizer to Metaspace so the tokenizer 1) only learns subword units within
-    # words, but 2) also keeps some kind of word separator (with whitespace being replaced
-    # by _)
+    # words, but 2) also keeps words separated (with whitespace being replaced by _)
     bpe_tokenizer.pre_tokenizer = Metaspace()
     
     # Create a BPE trainer with special tokens and the specified vocabulary size. 

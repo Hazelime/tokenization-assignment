@@ -8,20 +8,32 @@ import torch.optim as optim
 from models import TransformerBlock, DecoderTransformer
 from pathlib import Path
 import matplotlib.pyplot as plt
+from plotting import plot_losses, plot_loss_comparison
 
 
 class LMDataset(Dataset):
+    """
+    A PyTorch-compatible dataset class taking a list of tokens and a context length (T) as
+    input and returning batches of tokens (x) and the same tokens but shifted one context
+    length (T) to the right (y) when indexed.
+
+    Parameters:
+        tokens: list
+            A list of tokens (integers) representing the encoded text data.
+        T: int
+            The context length for the dataset. Each sample will consist of T tokens. 
+    """
     def __init__(self, tokens, T):
         self.tokens = torch.tensor(tokens, dtype = torch.long)
         self.T = T
 
     def __len__(self):
-        # // means whole-number division (i.e. discard remainder).
+        # // is whole-number division (i.e. discard remainder).
         return len(self.tokens - 1) // self.T
 
     def __getitem__(self, i):
         """
-        Helper method to enable use of square brackets for class objects, e.g. dataset[12:14].
+        Magic method to enable use of square brackets for class objects, e.g. dataset[12:14].
         """
         start = i * self.T
         # y is just x shifted one context length (T) to the right.
@@ -30,7 +42,28 @@ class LMDataset(Dataset):
         return x, y
 
 
-def get_encoded_dataloader(paths: list[str], tokenizer, T: int, B: int):
+def get_encoded_dataloader(paths: list[str],
+                           tokenizer: Tokenizer or CharTokenizer,
+                           T: int,
+                           B: int) -> DataLoader:
+    """
+    Encodes the text data from the given file paths using the provided tokenizer and
+    returns a DataLoader.
+
+    Parameters:
+        paths: list[str]
+            A list of file paths containing the text data to be encoded.
+        tokenizer: Tokenizer or CharTokenizer
+            The tokenizer to use for encoding the text data.
+        T: int
+            The context length for the dataset.
+        B: int
+            The batch size for the DataLoader.
+    
+    Returns:
+        DataLoader
+            A DataLoader that provides batches of encoded tokens.
+    """
     encoded_data = []
     eos_idx = tokenizer.encode("[EOS]").ids
     for path in paths:
@@ -56,7 +89,7 @@ def evaluate(model: DecoderTransformer,
             The DecoderTransformer model to evaluate.
         dataloader: DataLoader
             A DataLoader providing batches of tokens (x) and the same tokens but shifted
-            one step to the right (y).
+            one context length (T) to the right (y).
         loss_function: nn.CrossEntropyLoss
             The loss function to use for computing the loss.
     
@@ -67,20 +100,23 @@ def evaluate(model: DecoderTransformer,
     # Set model to evaluation mode.
     model.eval()
     
-    # Disable gradient computation since we are only evaluating.
+    # Disable gradient computation since we are only evaluating. Apparently, inference_mode()
+    # is more efficient than no_grad().
     with torch.inference_mode():
-        total_loss = 0.0
-        total_tokens = 0
+        total_loss, total_tokens = 0.0, 0
         
         for x, y in dataloader:
             # Only move the current batch to GPU rather than the whole dataset. 
             x = x.to(device)
             y = y.to(device)
 
+            # Flatten the logits and corresponding targets since CrossEntropyLoss expects the class
+            # dimension (V) second. We're making B * T predictions either way.
             logits = model(x)
             b, t, v = logits.shape
             loss = loss_function(logits.reshape(b * t, v),
                                  y.reshape(b * t))
+
             # y.numel() returns the number of elements (tokens in this case) in a tensor.
             n_tokens = y.numel()
             total_loss += loss.item() * n_tokens
@@ -93,67 +129,143 @@ def evaluate(model: DecoderTransformer,
     return total_loss / total_tokens
 
 
-def plot_losses(train_losses: list,
-                valid_losses: list,
+def train_model(tokenizer: Tokenizer or CharTokenizer,
+                train_loader: DataLoader,
+                valid_loader: DataLoader,
+                device: torch.device,
                 name: str,
-                save_path: str):
-    epochs = range(len(train_losses))
+                C: int = 256,
+                n_layers: int = 2,
+                n_heads: int = 8,
+                ff_dim: int = 512,
+                dropout_rate: float = 0.1,
+                T: int = 1024,
+                epochs: int = 5,
+                lr: float = 0.001) -> tuple[DecoderTransformer, list, list]:
+    """
+    Trains a DecoderTransformer model on the given training dataset and evaluates it on the
+    validation dataset.
 
-    plt.figure(figsize=(7, 5))
-
-    plt.plot(epochs, train_losses, marker = "o", label = "Training")
-    plt.plot(epochs, valid_losses, marker = "o", label = "Validation")
+    Parameters:
+        tokenizer: Tokenizer or CharTokenizer
+            The tokenizer used for encoding the text data.
+        train_loader: DataLoader
+            A DataLoader providing batches of tokens (x) and the same tokens but shifted
+            one context length (T) to the right (y) for training.
+        valid_loader: DataLoader
+            A DataLoader providing batches of tokens (x) and the same tokens but shifted
+            one context length (T) to the right (y) for validation.
+        name: str
+            The name of the model or experiment, used for logging and plotting.
+        C: int
+            The hidden dimension of the model.
+        n_layers: int
+            The number of Transformer layers in the model.
+        n_heads: int
+            The number of attention heads in the model.
+        ff_dim: int
+            The feed-forward dimension in the model.
+        dropout_rate: float
+            The dropout rate used in the model.
+        T: int
+            The context length for the dataset.
+        epochs: int
+            The number of epochs to train the model.
+        lr: float
+            The learning rate for the optimizer.
+        device: torch.device
+            The device (CPU or GPU) to use for training and evaluation.
     
-    plt.xlabel("Epoch")
-    plt.ylabel("Cross-entropy loss per token")
-    plt.title(f"{name} loss")
-    plt.xticks(epochs)
-    plt.legend()
-    plt.grid(alpha = 0.3)
+    Returns:
+        tuple[DecoderTransformer, list, list]
+            A tuple containing the trained model, a list of training losses for each epoch,
+            and a list of validation losses for each epoch.
+    """
+    print(f"Setting up model #{n}...")
+    model = DecoderTransformer(V = len(tokenizer.get_vocab()),
+                                C = C,
+                                n_layers = n_layers,
+                                n_heads = n_heads,
+                                ff_dim = ff_dim,
+                                dropout_rate = dropout_rate,
+                                T = T).to(device)
+    # Calculate model size by number of parameters.
+    n_params = sum(p.numel() for p in model.parameters())
+    print(f"Model #{n} has {n_params:,} parameters.")
+    optimizer = optim.Adam(model.parameters(), lr = lr)
+    loss_function = nn.CrossEntropyLoss()
 
-    # Create parent directory if necessary.
-    Path(save_path).parent.mkdir(parents = True, exist_ok = True)
-    plt.savefig(save_path, dpi = 300, bbox_inches = "tight")
+    # Calculate pre-training loss on training and validation datasets.
+    train_losses, valid_losses = [], []
+    print("Calculating pre-training loss...")
+    train_losses.append(evaluate(model, train_loader, loss_function, device))
+    valid_losses.append(evaluate(model, valid_loader, loss_function, device))
+
+    # Train
+    print("Training model...")
+    for epoch in range(epochs):
+        i, total_train_loss, total_train_tokens = 0, 0, 0
+        for x, y in train_loader:
+            i += 1
+            # Just a way of showing progress.
+            if i % 200 == 0:
+                print(f" ↳ Epoch {epoch+1}, batch {i}/{len(train_loader)}")
+            
+            # Only move the current batch to GPU rather than the entire dataset.
+            x = x.to(device)
+            y = y.to(device)
+            
+            # Step 1: Reset gradients.
+            optimizer.zero_grad()
+
+            # Step 2: Forward pass.
+            logits = model(x)
+
+            # Step 3: Compute loss after reshaping (B, T, V) -> (B * T, V), since 
+            # CrossEntropyLoss expects the class variable (V) second. We're making B * T
+            # predictions either way.
+            b, t, v = logits.shape
+            loss = loss_function(logits.reshape(b * t, v), y.reshape(b * t))
+
+            # Gather total loss already here so we don't need to redo it with evaluate().
+            # Doing it here means we are doing it while the model is changing, but it
+            # should be close enough to the loss after the epoch is done.
+            n_tokens = y.numel()
+            total_train_loss += loss.item() * n_tokens
+            total_train_tokens += n_tokens
+
+            # Step 4: Backward pass.
+            loss.backward()
+
+            # Step 5: Update parameters.
+            optimizer.step()
     
-    plt.close()
+        # Calculate loss on train and validation datasets after each epoch.
+        train_losses.append(total_train_loss / total_train_tokens)
+        valid_losses.append(evaluate(model, valid_loader, loss_function, device))
 
-def plot_loss_comparison(losses, save_path):
-    plt.figure(figsize = (9, 6))
+    # Summarize loss on train and validation datasets per epoch.
+    print("Average cross-entropy loss per token for training and validation loss.")
+    for epoch in range(epochs + 1):
+        print(f"Epoch {epoch}: {train_losses[epoch]:.4f} and {valid_losses[epoch]:.4f}")
+    
+    return model, train_losses, valid_losses
 
-    for name, (train_losses, valid_losses) in losses.items():
-        epochs = range(len(train_losses))
-
-        train_line, = plt.plot(epochs, train_losses, marker = "o", label = f"{name} - Training")
-        # For the validation loss curve, reuse the same color but make the line dashed.
-        color = train_line.get_color()
-        plt.plot(epochs, valid_losses, marker = "o", linestyle = "--", color = color, label = f"{name} - Validation")
-
-    plt.xlabel("Epoch")
-    plt.ylabel("Cross-entropy loss per token")
-    plt.title("Training and validation loss")
-    plt.xticks(epochs) # Assumes every model has the same number of epochs.
-    plt.legend()
-    plt.grid(alpha = 0.3)
-
-    # Create parent directory if necessary.
-    Path(save_path).parent.mkdir(parents = True, exist_ok = True)
-    plt.savefig(save_path, dpi = 300, bbox_inches = "tight")
-
-    plt.close()
 
 if __name__ == '__main__':
     # Sample syntax:
     # python3 train_models.py 
 
-    # Hyperparameters. Use recommended values and epochs = 5, batch_size = 64.
+    # Hyperparameters. Use recommended values and epochs = 5, batch_size = 32, lr = 0.001.
     n_layers = 2        # Number of Transformer layers
     C = 256             # Hidden dimension
-    n_heads = 4          # Number of attention heads
+    n_heads = 4         # Number of attention heads
     ff_dim = 1024       # Feed-forward dimension
     dropout_rate = 0.1 
     T = 256             # Context-length
     epochs = 5
     B = 32              # Batch size. I tried 64 but then the GPU ran out of memory.
+    lr = 0.001          # Learning rate.
 
     train_paths = ["/srv/data/lt2326-h26/a1/train/en.txt", 
                    "/srv/data/lt2326-h26/a1/train/tr.txt", 
@@ -179,21 +291,6 @@ if __name__ == '__main__':
     big_bpe_valid = get_encoded_dataloader(valid_paths, tokenizers[2], T, B)
     print("Encoding done.")
 
-    """
-    print(f"Number of examples for char_train: {len(char_train.dataset):,}")
-    print(f"Number of batches for char_train:  {len(char_train):,}")
-    print(f"Number of examples for char_valid: {len(char_valid.dataset):,}")
-    print(f"Number of batches for char_valid:  {len(char_valid):,}")
-    print(f"Number of examples for small_bpe_train: {len(small_bpe_train.dataset):,}")
-    print(f"Number of batches for small_bpe_train:  {len(small_bpe_train):,}")
-    print(f"Number of examples for small_bpe_valid: {len(small_bpe_valid.dataset):,}")
-    print(f"Number of batches for small_bpe_valid:  {len(small_bpe_valid):,}")
-    print(f"Number of examples for big_bpe_train: {len(big_bpe_train.dataset):,}")
-    print(f"Number of batches for big_bpe_train:  {len(big_bpe_train):,}")
-    print(f"Number of examples for big_bpe_valid: {len(big_bpe_valid.dataset):,}")
-    print(f"Number of batches for big_bpe_valid:  {len(big_bpe_valid):,}")
-    """
-
     # Make sure to use GPUs if available.
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}.")
@@ -204,77 +301,41 @@ if __name__ == '__main__':
                                                            [char_train, small_bpe_train, big_bpe_train],
                                                            [char_valid, small_bpe_valid, big_bpe_valid],
                                                            ["Character-level tokenization", "Small BPE tokenization (10,000)", "Big BPE tokenization (20,000)"]):
-        print(f"Setting up model #{n}...")
-        model = DecoderTransformer(V = len(tokenizer.get_vocab()),
-                                   C = C,
-                                   n_layers = n_layers,
-                                   n_heads = n_heads,
-                                   ff_dim = ff_dim,
-                                   dropout_rate = dropout_rate,
-                                   T = T).to(device)
-        # Calculate model size by number of parameters.
-        n_params = sum(p.numel() for p in model.parameters())
-        print(f"Model #{n} has {n_params:,} parameters.")
-        optimizer = optim.Adam(model.parameters(), lr = 0.001)
-        loss_function = nn.CrossEntropyLoss()
-
-        # Calculate pre-training loss on training and validation datasets.
+        # Reset losses with every new model.
         train_losses, valid_losses = [], []
-        print("Calculating pre-training loss...")
-        train_losses.append(evaluate(model, train_loader, loss_function, device))
-        valid_losses.append(evaluate(model, valid_loader, loss_function, device))
-
-        # Train
-        print("Training model...")
-        for epoch in range(epochs):
-            i, total_train_loss, total_train_tokens = 0, 0, 0
-            for x, y in train_loader:
-                i += 1
-                if i % 250 == 0:
-                    print(f" ↳ Epoch {epoch+1}, batch {i}/{len(train_loader)}")
-                # Only move the current batch to GPU rather than the entire dataset.
-                x = x.to(device)
-                y = y.to(device)
-                
-                # Step 1: Reset gradients.
-                optimizer.zero_grad()
-
-                # Step 2: Forward pass.
-                logits = model(x)
-
-                # Step 3: Compute loss after reshaping (B, T, V) -> (B, T), since that is
-                # what CrossEntropyLoss expects.
-                b, t, v = logits.shape
-                loss = loss_function(logits.reshape(b * t, v), y.reshape(b * t))
-
-                # Gather total loss already here so we don't need to redo it with evaluate().
-                n_tokens = y.numel()
-                total_train_loss += loss.item() * n_tokens
-                total_train_tokens += n_tokens
-
-                # Step 4: Backward pass.
-                loss.backward()
-
-                # Step 5: Update parameters.
-                optimizer.step()
         
-            # Calculate loss on train and validation datasets after each epoch.
-            train_losses.append(total_train_loss / total_train_tokens)
-            valid_losses.append(evaluate(model, valid_loader, loss_function, device))
+        # Train the model and get the training and validation losses for each epoch.
+        model, train_losses, valid_losses = train_model(tokenizer = tokenizer,
+                                                        train_loader = train_loader,
+                                                        valid_loader = valid_loader,
+                                                        device = device,
+                                                        name = name,
+                                                        C = C,
+                                                        n_layers = n_layers,
+                                                        n_heads = n_heads,
+                                                        ff_dim = ff_dim,
+                                                        dropout_rate = dropout_rate,
+                                                        T = T,
+                                                        epochs = epochs,
+                                                        lr = lr)
 
-        # Summarize loss on train and validation datasets per epoch.
-        print("Average cross-entropy loss per token for training and validation loss.")
-        for epoch in range(epochs + 1):
-            print(f"Epoch {epoch}: {train_losses[epoch]:.4f} and {valid_losses[epoch]:.4f}")
-
+        # Plot the training and validation losses for this particular model.
         plot_losses(train_losses = train_losses,
                     valid_losses = valid_losses,
                     name = name,
                     save_path = f"plots/losses_{n}.png")
-
+        
+        # Save the training and validation losses for this model.
         losses[name] = train_losses, valid_losses
+
+        # Save the model to disk.
+        Path("models").mkdir(parents = True, exist_ok = True)
+        torch.save(model.state_dict(), f"models/model_{n}.pth")
+        print(f"Model #{n} saved to models/model_{n}.pth")
+
         n += 1
     
+    # Plot the training and validation losses for all models for comparison.
     plot_loss_comparison(losses, "plots/loss_comparison.png")
     
         
