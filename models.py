@@ -124,7 +124,7 @@ class DecoderTransformer(nn.Module):
                  n_heads: int = 4,
                  ff_dim: int = 1024,
                  dropout_rate: float = 0.1,
-                 T: int = 128):
+                 T: int = 256):
         # Inherit all the fancy PyTorch magic.
         super(DecoderTransformer, self).__init__()
         
