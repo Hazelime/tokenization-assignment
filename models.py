@@ -150,12 +150,12 @@ class DecoderTransformer(nn.Module):
         # Token embeddings. (B, T) -> (B, T, C)
         token_embeddings = self.token_embeddings(x)
         
-        # Position embeddings. (T) -> (T, C)
+        # Position embeddings. 
         B, T = x.shape
         # Create a list of positions from 0 to T-1. Arange creates a new tensor, so we need
         # to put it on the same device as x.
         positions = torch.arange(T, device = x.device)
-        position_embeddings = self.position_embeddings(positions)
+        position_embeddings = self.position_embeddings(positions) # (T) -> (T, C)
         
         # Add positional embeddings to token embeddings.
         # (B, T, C) + (T, C) -> (B, T, C)
