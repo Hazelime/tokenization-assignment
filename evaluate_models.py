@@ -110,6 +110,10 @@ if __name__ == '__main__':
         # Create a dictionary entry for each tokenizer unless it already exists.
         if tokenizer not in npcs_on_test: npcs_on_test[tokenizer] = {}
 
+        # Load the model and its weights.
+        model = DecoderTransformer(V = len(tokenizer.get_vocab())).to(device)
+        model.load_state_dict(torch.load(model_path, weights_only=True))
+
         for test_path, char_count in zip(test_paths, char_counts):
             print(f"Evaluating {model_path} on {test_path}...")
 
@@ -117,16 +121,21 @@ if __name__ == '__main__':
             # T = context length and B = batch size are imported from hyperparameters.py.
             encoded_test = get_encoded_dataloader([test_path], tokenizer, T = T, B = B)
 
-            # Load the model and its weights.
-            model = DecoderTransformer(V = len(tokenizer.get_vocab())).to(device)
-            model.load_state_dict(torch.load(model_path, weights_only=True))
-
             # Calculate nats per character (NPC) for each model x language test set combo.
             # It's a bit convoluted, but this allows me to reuse printing code.
             lang_code = test_path.split("/")[-1].split(".")[0]  # Extract language code
             npc = get_npc_on_test(model, encoded_test, char_count, device)
             npcs_on_test[tokenizer][lang_code] = {"npc": npc}
-
+        
+        # Also calculate NPC across all test sets for the current model x tokenizer combo.
+        encoded_test_all = get_encoded_dataloader(test_paths, tokenizer, T = T, B = B)
+        total_char_count = sum(char_counts)
+        npc_all = get_npc_on_test(model, encoded_test_all, total_char_count, device)
+        model_name = model_path.split("/")[-1].split(".")[0]  # Extract model name
+        print(f"Overall NPC for {model_name}: {npc_all:.4f}")
+        
     # Print the NPCs for each model x language test set combo in a pretty table.
     print_stats(npcs_on_test, ["npc"], tokenizers)
+
+    
 
