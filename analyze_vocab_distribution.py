@@ -136,3 +136,32 @@ if __name__ == '__main__':
         if len(big_bpe_classifications[token]) > 2 and big_bpe_token_counts[token]["en"] > 1:
             print(f"Big BPE token '{token}' was assigned to three languages. EN: {big_bpe_token_counts[token].get('en', 0)}, TR: {big_bpe_token_counts[token].get('tr', 0)}, ZH: {big_bpe_token_counts[token].get('zh', 0)}")
     print()
+
+    # Print tokens that are shared between English and Turkish, but not Chinese.
+    for token in small_bpe_classifications:
+        if len(small_bpe_classifications[token]) > 1 and \
+           small_bpe_token_counts[token]["en"] > 1 and \
+           small_bpe_token_counts[token]["tr"] > 1 and \
+           small_bpe_token_counts[token]["zh"] < 1:
+            print(f"Small BPE token '{token}' was shared between EN and TR: EN: {small_bpe_token_counts[token].get('en', 0)}, TR: {small_bpe_token_counts[token].get('tr', 0)}, ZH: {small_bpe_token_counts[token].get('zh', 0)}")
+    for token in big_bpe_classifications:
+        if len(big_bpe_classifications[token]) > 1 and \
+           big_bpe_token_counts[token]["en"] > 1 and \
+           big_bpe_token_counts[token]["tr"] > 1 and \
+           big_bpe_token_counts[token]["zh"] < 1:
+            print(f"Big BPE token '{token}' was shared between EN and TR: EN: {big_bpe_token_counts[token].get('en', 0)}, TR: {big_bpe_token_counts[token].get('tr', 0)}, ZH: {big_bpe_token_counts[token].get('zh', 0)}")
+    print()
+
+    # Print the percentage of tokens shared by English and Turkish only.
+    shared_en_tr = 0
+    for token in small_bpe_classifications:
+        if len(small_bpe_classifications[token]) > 1 and \
+           "zh" not in small_bpe_classifications[token]: 
+            shared_en_tr += 1 
+    print(f"Percentage of Small BPE tokens shared by EN and TR only: {(shared_en_tr / len(small_bpe_classifications) * 100):.2f}%")
+    shared_en_tr = 0
+    for token in big_bpe_classifications:
+        if len(big_bpe_classifications[token]) > 1 and \
+           "zh" not in big_bpe_classifications[token]: 
+            shared_en_tr += 1 
+    print(f"Percentage of Big BPE tokens shared by EN and TR only: {(shared_en_tr / len(big_bpe_classifications) * 100):.2f}%")
