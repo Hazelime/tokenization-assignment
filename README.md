@@ -1,7 +1,7 @@
 # Assignment 1 - Multilingual Tokenization and Language Modeling
 This is a repository used to complete an assignment in the GU course Machine Learning for Statistical NLP: Advanced (LT2326). In a nutshell, the code builds and analyzes one character-level tokenizer and two BPE tokenizers, trains one decoder-only Transformer model per tokenizer, and then evaluates the nats-per-character (NPC) for each model on English, Turkish, and Chinese data.
 
-A pre-experiment checkpoint is available in Assignment 1 checkpoint.pdf, the final report in Assignment 1 report.pdf, and a description of AI use in AI log.pdf.
+A pre-experiment checkpoint is available in ```Assignment 1 checkpoint.pdf```, the final report in ```Assignment 1 report.pdf```, and a description of AI use in ```AI log.pdf```.
 
 Below is how to reproduce the full experiment.
 
