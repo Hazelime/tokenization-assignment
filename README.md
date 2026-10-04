@@ -4,7 +4,7 @@ This is a repository used to complete an assignment in the GU course Machine Lea
 A pre-experiment checkpoint is available in Assignment 1 checkpoint.pdf, the final report in Assignment 1 report.pdf, and a description of AI use in AI log.pdf.
 
 This is how to reproduce the full experiment:
-'''
+```
 # Build tokenizers. All tokenizers use [UNK] and [EOS] special tokens. The BPE tokenizers use Metaspace pre-tokenization.
 python3 build_tokenizers.py
 
@@ -20,4 +20,4 @@ python3 evaluate_models.py
 
 # Analyze vocabulary distribution. This will calculate how much of the BPE vocabulary is shared, and how much is associated primarily with one of the languages.
 python3 analyze_vocab_distribution.py
-'''
+```
